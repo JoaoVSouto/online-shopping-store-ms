@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import jwt from 'express-jwt';
 import { expressJwtSecret } from 'jwks-rsa';
@@ -15,6 +20,30 @@ export class AuthorizationGuard implements CanActivate {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    return true;
+    const httpContext = context.switchToHttp();
+    const req = httpContext.getRequest();
+    const res = httpContext.getResponse();
+
+    const checkJWT = promisify(
+      jwt({
+        secret: expressJwtSecret({
+          cache: true,
+          rateLimit: true,
+          jwksRequestsPerMinute: 5,
+          jwksUri: `${this.AUTH0_DOMAIN}.well-known/jwks.json`,
+        }),
+        audience: this.AUTH0_AUDIENCE,
+        issuer: this.AUTH0_DOMAIN,
+        algorithms: ['RS256'],
+      }),
+    );
+
+    try {
+      await checkJWT(req, res);
+
+      return true;
+    } catch (err) {
+      throw new UnauthorizedException(err);
+    }
   }
 }
