@@ -1,20 +1,28 @@
-import { useUser } from '@auth0/nextjs-auth0';
-import type { NextPage } from 'next';
+import type { GetServerSideProps, NextPage } from 'next';
+import { getSession } from '@auth0/nextjs-auth0';
 
 const Home: NextPage = () => {
-  const { user } = useUser();
-
-  return (
-    <>
-      <h1>Hello Next.js</h1>
-
-      <p style={{ whiteSpace: 'break-spaces' }}>
-        {JSON.stringify(user, null, 2)}
-      </p>
-
-      <a href="/api/auth/login">Login</a>
-    </>
-  );
+  return null;
 };
 
 export default Home;
+
+export const getServerSideProps: GetServerSideProps = async ({ req, res }) => {
+  const session = getSession(req, res);
+
+  if (!session) {
+    return {
+      redirect: {
+        destination: '/api/auth/login',
+        permanent: false,
+      },
+    };
+  }
+
+  return {
+    redirect: {
+      destination: '/app',
+      permanent: false,
+    },
+  };
+};
